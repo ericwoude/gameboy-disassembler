@@ -2,8 +2,6 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fs;
 
-use serde_json;
-
 #[derive(Debug, serde::Deserialize)]
 pub struct Operand {
     pub name: String,
@@ -34,14 +32,12 @@ impl fmt::Display for Operand {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut name = self.name.clone();
 
-        match self.increment {
-            Some(_k) => name += "+",
-            None => (),
+        if self.increment.is_some() {
+            name += "+"
         }
 
-        match self.decrement {
-            Some(_k) => name += "-",
-            None => (),
+        if self.decrement.is_some() {
+            name += "-"
         }
 
         if self.immediate {
@@ -73,7 +69,7 @@ pub fn parse_from_file(location: &str) -> InstructionBank {
     let data = fs::read_to_string(location).expect("Unable to read file");
     let bank: InstructionBank = serde_json::from_str(&data).expect("Unable to parse data");
 
-    return bank;
+    bank
 }
 
 #[cfg(test)]
@@ -126,6 +122,5 @@ mod tests {
         assert_eq!("BIT 0, (HL)", instructions.cbprefixed["0x46"].to_string());
         assert_eq!("BIT 6, A", instructions.cbprefixed["0x77"].to_string());
         assert_eq!("SET 6, B", instructions.cbprefixed["0xF0"].to_string());
-
     }
 }
