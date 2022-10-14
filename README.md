@@ -3,3 +3,6 @@
 
 # Game Boy disassembler
 > Disassembler for the Nintendo Gameboy DMG-01
+
+
+Credits for the test rom go to Yvar de Goffau [snake.gb](https://forums.nesdev.org/viewtopic.php?f=20&t=16787)
