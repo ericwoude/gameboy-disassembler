@@ -2,8 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fs;
 
-extern crate hex_string;
-use hex_string::u8_to_hex_string;
+use serde::{de::Error, Deserialize, Deserializer};
 
 #[derive(Clone, Debug, serde::Deserialize)]
 pub struct Operand {
@@ -24,7 +23,24 @@ pub struct Instruction {
     pub flags: HashMap<String, String>,
 }
 
-type Instructions = HashMap<String, Instruction>;
+#[derive(Debug, Hash, PartialEq, Eq)]
+pub struct Opcode(u8);
+
+impl<'de> Deserialize<'de> for Opcode {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: &str = Deserialize::deserialize(deserializer)?;
+
+        let numbers = s.trim_start_matches("0x");
+        u8::from_str_radix(numbers, 16)
+            .map(Opcode)
+            .map_err(D::Error::custom)
+    }
+}
+
+type Instructions = HashMap<Opcode, Instruction>;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct InstructionBank {
@@ -88,19 +104,6 @@ pub fn load_cartridge(location: &str) -> Vec<u8> {
     std::fs::read(location).unwrap()
 }
 
-// Refactor: deserialize json as hexstring so becomes obsolete.
-fn make_opcode_string(opcode: &u8) -> String {
-    let mut s = String::from("0x");
-
-    let chars: Vec<char> = Vec::from(u8_to_hex_string(opcode));
-
-    for ch in chars {
-        s.push(ch.to_ascii_uppercase());
-    }
-
-    s
-}
-
 pub fn decode(
     mut address: usize,
     bytes: &[u8],
@@ -110,12 +113,11 @@ pub fn decode(
     address += 1;
 
     let meta_instruction = if opcode == 0xCB {
-        let s = make_opcode_string(&bytes[address]);
+        let opc = bytes[address];
         address += 1;
-        &instructions.cbprefixed[&s]
+        &instructions.cbprefixed[&Opcode(opc)]
     } else {
-        let s = make_opcode_string(&opcode);
-        &instructions.unprefixed[&s]
+        &instructions.unprefixed[&Opcode(opcode)]
     };
 
     // Reconstruct a new instruction with added value detail for operands
@@ -223,15 +225,33 @@ mod tests {
         let instructions = parse_from_file("./instructions.json");
 
         // unprefixed
-        assert_eq!("LD BC, d16", instructions.unprefixed["0x01"].to_string());
-        assert_eq!("LD (HL-), A", instructions.unprefixed["0x32"].to_string());
-        assert_eq!("HALT", instructions.unprefixed["0x76"].to_string());
-        assert_eq!("POP DE", instructions.unprefixed["0xD1"].to_string());
+        assert_eq!(
+            "LD BC, d16",
+            instructions.unprefixed[&Opcode(0x01)].to_string()
+        );
+        assert_eq!(
+            "LD (HL-), A",
+            instructions.unprefixed[&Opcode(0x32)].to_string()
+        );
+        assert_eq!("HALT", instructions.unprefixed[&Opcode(0x76)].to_string());
+        assert_eq!("POP DE", instructions.unprefixed[&Opcode(0xD1)].to_string());
 
         // cbprefixed
-        assert_eq!("RLC (HL)", instructions.cbprefixed["0x06"].to_string());
-        assert_eq!("BIT 0, (HL)", instructions.cbprefixed["0x46"].to_string());
-        assert_eq!("BIT 6, A", instructions.cbprefixed["0x77"].to_string());
-        assert_eq!("SET 6, B", instructions.cbprefixed["0xF0"].to_string());
+        assert_eq!(
+            "RLC (HL)",
+            instructions.cbprefixed[&Opcode(0x06)].to_string()
+        );
+        assert_eq!(
+            "BIT 0, (HL)",
+            instructions.cbprefixed[&Opcode(0x46)].to_string()
+        );
+        assert_eq!(
+            "BIT 6, A",
+            instructions.cbprefixed[&Opcode(0x77)].to_string()
+        );
+        assert_eq!(
+            "SET 6, B",
+            instructions.cbprefixed[&Opcode(0xF0)].to_string()
+        );
     }
 }

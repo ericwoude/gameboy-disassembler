@@ -6,16 +6,9 @@ version = 3
 name = "gameboy-disassembler"
 version = "0.1.0"
 dependencies = [
- "hex-string",
  "serde",
  "serde_json",
 ]
-
-[[package]]
-name = "hex-string"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "848ec2dd093df965a34b434580d94852197fc83feac5b2c1962399bbf2cb4f0b"
 
 [[package]]
 name = "itoa"
