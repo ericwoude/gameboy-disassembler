@@ -1,8 +1,21 @@
 mod parse;
 
-fn main() {
-    let instructions = parse::parse_from_file("./instructions.json");
-    let bytes = parse::load_cartridge("./snake.gb");
+use clap::Parser;
 
-    parse::disassemble(0x150, &bytes, &instructions, 8);
+#[derive(Parser)]
+struct Args {
+    #[arg(short, long, required(true))]
+    file: String,
+
+    #[arg(short, long, default_value_t = 0x150)]
+    entry: usize,
+}
+
+fn main() {
+    let args = Args::parse();
+
+    let instructions = parse::parse_from_file("./instructions.json");
+    let bytes = parse::load_cartridge(&args.file);
+
+    parse::disassemble(args.entry, &bytes, &instructions, 8);
 }
