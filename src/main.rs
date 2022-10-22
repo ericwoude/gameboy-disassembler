@@ -17,7 +17,7 @@ struct Args {
     amount: usize,
 }
 
-fn parse_hex_string(s: &str) -> Result<usize, std::io::Error> {
+fn parse_hex_string(s: &str) -> Result<usize, std::num::ParseIntError> {
     let mut base = 10;
     let mut numbers = s;
 
@@ -26,12 +26,7 @@ fn parse_hex_string(s: &str) -> Result<usize, std::io::Error> {
         numbers = &s[2..];
     }
 
-    let result = usize::from_str_radix(numbers, base);
-    if result.is_err() {
-        panic!("error parsing entry value into int");
-    } else {
-        Ok(result.unwrap())
-    }
+    usize::from_str_radix(numbers, base)
 }
 
 fn main() {
